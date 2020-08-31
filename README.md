@@ -24,5 +24,5 @@
   - 예약/승인 상태는 예약목록 시스템에서 확인 가능하다.(CQRS)
   - 예약/승인 상태가 변경될때 이메일로 알림을 줄 수 있다.(Event Driven)
   
-### 이벤트 스토밍 결과
-http://www.msaez.io/#/storming/mOaNWpsERuRRDFTdm37r55hNZTm1/mine/595fb092dd58662b3447b8cc4f33f1e5/-MG1NAFxiCO7t8IK7chh
+### 분석 설계
+* 이벤트스토밍 결과: http://www.msaez.io/#/storming/mOaNWpsERuRRDFTdm37r55hNZTm1/mine/595fb092dd58662b3447b8cc4f33f1e5/-MG1NAFxiCO7t8IK7chh
