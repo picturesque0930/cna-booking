@@ -1,4 +1,3 @@
-
 package ohcna;
 
 public class BookingCreated extends AbstractEvent {
