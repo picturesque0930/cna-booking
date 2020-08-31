@@ -1,7 +1,6 @@
 package ohcna;
 
 import javax.persistence.*;
-import java.util.List;
 
 @Entity
 @Table(name="BookingList_table")

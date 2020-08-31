@@ -1,0 +1,8 @@
+생성
+    http POST localhost:8081/bookings roomId=1 useStartDtm="20200831090000" useEndDtm="20200831100000" bookingUserId="06719" 
+변경
+    http PUT localhost:8081/bookings/1 roomId=1 useStartDtm="20200831093000" useEndDtm="20200831130000" bookingUserId="06719" 
+조회: 목록
+    http GET localhost:8081/bookings 
+조회: 1건
+    http GET localhost:8081/bookings/1
