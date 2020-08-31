@@ -33,3 +33,7 @@ phases:
       - echo Deploy service into EKS
       - kubectl apply -f ./kubernetes/deployment.yml # Deploy
       - kubectl apply -f ./kubernetes/service.yml # Service
+
+cache:
+  paths:
+    - '/root/.m2/**/*'
