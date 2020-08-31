@@ -1,0 +1,13 @@
+생성
+    http POST localhost:8081/bookings roomId=1 useStartDtm="20200831090000" useEndDtm="20200831100000" bookingUserId="06719" 
+    http POST localhost:8081/bookings roomId=1 useStartDtm="20200901093000" useEndDtm="20200901103000" bookingUserId="06719" 
+    http POST localhost:8081/bookings roomId=1 useStartDtm="20200902100000" useEndDtm="20200902110000" bookingUserId="06719" 
+변경
+    http PUT localhost:8081/bookings/1 roomId=1 useStartDtm="20200831093000" useEndDtm="20200831130000" bookingUserId="06719" 
+조회: 목록
+    http GET localhost:8081/bookings 
+조회: 1건
+    http GET localhost:8081/bookings/1
+
+Kafka
+    $kafka_home/bin/kafka-console-consumer.sh --bootstrap-server 127.0.0.1:9092 --topic ohcna --group product --from-beginning
