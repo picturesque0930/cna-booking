@@ -1,6 +1,18 @@
-## 서비스 시나리오
+# 주제 - 회의실 시스템
 
-### 기능적 요구사항
+회의실 예약, 컨펌 관리 시스템 입니다.
+
+# 구현 Repository
+
+총 4개
+1. https://github.com/aimmvp/cna-booking
+2. https://github.com/aimmvp/cna-confirm
+3. https://github.com/aimmvp/cna-notification
+4. https://github.com/aimmvp/cna-gateway
+
+# 서비스 시나리오
+
+## 기능적 요구사항
 
 1. 사용자가 회의실을 예약한다.(bookingCreate)
 2. 사용자는 회의실 예약을 취소 할 수 있다.(bookingCancel)
@@ -12,7 +24,7 @@
 8. 에약/승인 상태가 바뀔때마다 이메일로 알림을 준다.
 9. 예약이 취소(bookingCancelled) 되면 
 
-### 비기능적 요구사항
+## 비기능적 요구사항
 1. 트랜잭션
   - 승인거절(confirmDenied) 되었을 경우 예약을 취소한다.(Sync 호출)
   
@@ -24,9 +36,9 @@
   - 예약/승인 상태는 예약목록 시스템에서 확인 가능하다.(CQRS)
   - 예약/승인 상태가 변경될때 이메일로 알림을 줄 수 있다.(Event Driven)
   
-## 분석 설계
+# 분석 설계
 * 이벤트스토밍 결과: http://www.msaez.io/#/storming/mOaNWpsERuRRDFTdm37r55hNZTm1/mine/595fb092dd58662b3447b8cc4f33f1e5/-MG1NAFxiCO7t8IK7chh
 
-### 이벤트 도출
+## 이벤트 도출
 
 ![이벤트 스토밍](https://user-images.githubusercontent.com/67448171/91698324-7e5b3e80-ebad-11ea-8b16-48120bf8e92a.jpg)
