@@ -29,3 +29,4 @@
 
 ### 이벤트 도출
 
+![이벤트 스토밍](https://user-images.githubusercontent.com/67448171/91698324-7e5b3e80-ebad-11ea-8b16-48120bf8e92a.jpg)
