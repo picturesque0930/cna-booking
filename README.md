@@ -214,10 +214,102 @@ http PUT http://52.231.116.117:8080/bookings/BookingCanceled/1
 # confirm 서비스의 컨펌
 http POST http://52.231.116.117:8080/confirms/1
 
-# confirm 서비스의 컨펌취소처리
+# confirm 서비스의 컨펌 반려 처리
 http POST http://52.231.116.117:8080/confirms/ConfirmDeleted/1
 
 # 회의실 상태 확인
 http://52.231.116.117:8080/bookingList
 
 ```
+
+## 동기식 호출 과 비동기식 
+
+분석단계에서의 조건 중 하나로 컨펌 반려(confirmDeny)->회의실 예약 취소(bookingCancel) 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리하기로 하였다. 호출 프로토콜은 이미 앞서 Rest Repository 에 의해 노출되어있는 REST 서비스를 FeignClient 를 이용하여 호출하도록 한다. 
+
+```
+# (app) pointSystemService.java
+
+@FeignClient(name="booking", url="http://52.231.116.117:8080")
+public interface PointSystemService {
+    @RequestMapping(method= RequestMethod.POST, path="/booking", consumes = "application/json")
+    public void usePoints(@RequestBody PointSystem pointSystem);
+}
+```
+
+```
+Res, PUB/SUB 등 개발 된거 설명하려면 
+```
+
+결과 : 회의실이 예약된 후, 예약이 완료되는 것과 회의실의 상태가 변경된 것을 bookingList에서확인 할 수 있다.
+
+# 운영
+
+## CI/CD 설정
+
+
+각 구현체들은 각자의 source repository 에 구성되었고, 사용한 CI/CD 플랫폼은 azure를 사용하였으며, pipeline build script 는 각 프로젝트 폴더 이하에 buildspec.yml 에 포함되었다.
+
+## pipeline 동작 결과
+
+아래 이미지는 azure의 pipeline에 각각의 서비스들을 올려, 코드가 업데이트 될때마다 자동으로 빌드/배포 하도록 하였다.
+```
+Test 결과 넣어야 함
+```
+
+그 결과 kubernetes cluster에 아래와 같이 서비스가 올라가있는 것을 확인할 수 있다.
+
+```
+Test 결과 넣어야 함
+```
+
+또한, 기능들도 정상적으로 작동함을 알 수 있다.
+
+**<이벤트 날리기>**
+
+```
+Test 결과 넣어야 함
+```
+
+**<동작 결과>**
+
+```
+Test 결과 넣어야 함
+```
+
+### 오토스케일 아웃
+
+
+- 컨펌서비스에 대한 replica 를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 15프로를 넘어서면 replica 를 10개까지 늘려준다:
+- 오토스케일이 어떻게 되고 있는지 모니터링을 걸어둔다:
+
+```
+Test 결과 넣어야 함
+```
+
+- 워크로드를 2분 동안 걸어준 후 테스트 결과는 아래와 같다.
+
+```
+Test 결과 넣어야 함
+```
+
+
+## 무정지 재배포
+
+Autoscaler설정과 Readiness 제거를 한뒤, 부하를 넣었다. 
+
+이후 Readiness를 제거한 코드를 업데이트하여 새 버전으로 배포를 시작했다.
+
+그 결과는 아래는 같다.
+
+```
+Test 결과 넣어야 함
+```
+
+다시 Readiness 설정을 넣고 부하를 넣었다.
+
+그리고 새버전으로 배포한 뒤 그 결과는 아래와 같다.
+
+```
+Test 결과 넣어야 함
+```
+배포기간 동안 Availability 가 변화없기 때문에 무정지 재배포가 성공한 것으로 확인됨.
