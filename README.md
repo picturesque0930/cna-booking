@@ -26,3 +26,6 @@
   
 ### 분석 설계
 * 이벤트스토밍 결과: http://www.msaez.io/#/storming/mOaNWpsERuRRDFTdm37r55hNZTm1/mine/595fb092dd58662b3447b8cc4f33f1e5/-MG1NAFxiCO7t8IK7chh
+
+### 이벤트 도출
+
