@@ -102,3 +102,122 @@ mvn spring-boot:run
 ## DDD 의 적용
 
 - 각 서비스내에 도출된 핵심 Aggregate Root 객체를 Entity 로 선언. 이때 가능한 현업에서 사용하는 언어 (유비쿼터스 랭귀지)를 그대로 사용함.
+
+```
+package ohcna;
+
+import javax.persistence.*;
+import org.springframework.beans.BeanUtils;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import ohcna.config.kafka.KafkaProcessor;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.MessageHeaders;
+import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.util.MimeTypeUtils;
+
+@Entity
+@Table(name="Booking_table")
+public class Booking {
+
+    @Id
+    @GeneratedValue(strategy=GenerationType.AUTO)
+    private Long id;
+    private Long roomId;
+    private String useStartDtm;
+    private String useEndDtm;
+    private String bookingUserId;
+
+    @PostPersist
+    public void onPostPersist(){
+        BookingCreated bookingCreated = new BookingCreated();
+        BeanUtils.copyProperties(this, bookingCreated);
+        bookingCreated.publishAfterCommit();
+    }
+
+    @PostUpdate
+    public void onPostUpdate(){
+        BookingChanged bookingChanged = new BookingChanged();
+        BeanUtils.copyProperties(this, bookingChanged);
+        bookingChanged.publishAfterCommit();
+    }
+
+    @PreRemove
+    public void onPreRemove(){
+        BookingCancelled bookingCancelled = new BookingCancelled();
+        BeanUtils.copyProperties(this, bookingCancelled);
+        bookingCancelled.publishAfterCommit();
+    }
+
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+    public Long getRoomId() {
+        return roomId;
+    }
+
+    public void setRoomId(Long roomId) {
+        this.roomId = roomId;
+    }
+    public String getUseStartDtm() {
+        return useStartDtm;
+    }
+
+    public void setUseStartDtm(String useStartDtm) {
+        this.useStartDtm = useStartDtm;
+    }
+    public String getUseEndDtm() {
+        return useEndDtm;
+    }
+
+    public void setUseEndDtm(String useEndDtm) {
+        this.useEndDtm = useEndDtm;
+    }
+    public String getBookingUserId() {
+        return bookingUserId;
+    }
+
+    public void setBookingUserId(String bookingUserId) {
+        this.bookingUserId = bookingUserId;
+    }
+
+}
+
+```
+
+- Entity Pattern 과 Repository Pattern 을 적용하여 JPA 를 통하여 다양한 데이터소스 유형 (RDB or NoSQL) 에 대한 별도의 처리가 없도록 데이터 접근 어댑터를 자동 생성하기 위하여 Spring Data REST 의 RestRepository 를 적용하였다
+
+```
+package ohcna;
+import org.springframework.data.repository.PagingAndSortingRepository;
+public interface BookingRepository extends PagingAndSortingRepository<Booking, Long>{
+}
+```
+
+- 적용 후 REST API 의 테스트
+```
+# booking 서비스의 회의실 예약처리
+http POST http://52.231.116.117:8080/bookings roomID="111" useStartDtm="20200831183000" useEndDtm="20200901183000" userId="team5"
+
+# booking 서비스의 회의실 예약 상태변경처리
+http PUT http://52.231.116.117:8080/bookings/BookingChanged roomID="111"
+
+# booking 서비스의 회의실 예약취소
+http PUT http://52.231.116.117:8080/bookings/BookingCanceled/1
+
+# confirm 서비스의 컨펌
+http POST http://52.231.116.117:8080/confirms/1
+
+# confirm 서비스의 컨펌취소처리
+http POST http://52.231.116.117:8080/confirms/ConfirmDeleted/1
+
+# 회의실 상태 확인
+http://52.231.116.117:8080/bookingList
+
+```
