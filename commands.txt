@@ -1,0 +1,44 @@
+생성
+    http POST localhost:8081/bookings roomId=1 useStartDtm="20200831090000" useEndDtm="20200831100000" bookingUserId="06719" 
+    http POST localhost:8081/bookings roomId=1 useStartDtm="20200901093000" useEndDtm="20200901103000" bookingUserId="06719" 
+    http POST localhost:8081/bookings roomId=1 useStartDtm="20200902100000" useEndDtm="20200902110000" bookingUserId="06719" 
+변경
+    http PUT localhost:8081/bookings/1 roomId=1 useStartDtm="20200831093000" useEndDtm="20200831130000" bookingUserId="06719" 
+삭제
+    http DELETE localhost:8081/bookings/1
+조회: 목록
+    http GET localhost:8081/bookings 
+조회: 1건
+    http GET localhost:8081/bookings/2
+
+Kafka Consumer
+    Local
+        $kafka_home/bin/kafka-console-consumer.sh --bootstrap-server 127.0.0.1:9092 --topic ohcna
+    EKS
+        kubectl -n kafka exec -ti my-kafka-0 -- /usr/bin/kafka-console-consumer --bootstrap-server my-kafka:9092 --topic ohcna --from-beginning
+
+EKS 접속정보 설정
+    aws eks --region ap-northeast-2 update-kubeconfig --name TeamE
+    kubectl config current-context
+    kubectl get all
+
+Kubernetes 조회
+    kubectl get all
+    kubectl get ns
+
+Kubernetes에 카프카 설치
+    curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+    kubectl --namespace kube-system create sa tiller
+    kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
+    helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
+
+Kubernetes에 Istio 설치
+    curl -L https://git.io/getLatestIstio | ISTIO_VERSION=1.4.3 sh -
+    cd istio-1.4.3
+    export PATH=$PWD/bin:$PATH
+    for i in install/kubernetes/helm/istio-init/files/crd*yaml; do kubectl apply -f $i; done
+    kubectl apply -f install/kubernetes/istio-demo.yaml
+
+Istio 활성화
+    kubectl create namespace istio-cb-ns
+    kubectl label namespace istio-cb-ns istio-injection=enabled

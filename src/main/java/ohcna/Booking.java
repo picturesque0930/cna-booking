@@ -3,14 +3,6 @@ package ohcna;
 import javax.persistence.*;
 import org.springframework.beans.BeanUtils;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import ohcna.config.kafka.KafkaProcessor;
-import org.springframework.messaging.MessageChannel;
-import org.springframework.messaging.MessageHeaders;
-import org.springframework.messaging.support.MessageBuilder;
-import org.springframework.util.MimeTypeUtils;
-
 @Entity
 @Table(name="Booking_table")
 public class Booking {
