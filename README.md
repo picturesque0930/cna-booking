@@ -273,6 +273,53 @@ Res, PUB/SUB 등 개발 된거 설명하려면
 5. ECR에서 도커 이미지 pull
 
 
+## Gateway 적용
+각 서비스는 ClusterIP 로 선언하여 외부로 노출되지 않고, Gateway 서비스 만을 LoadBalancer 타입으로 선언하여 Gateway 서비스를 통해서만 접근할 수 있다.
+```yml
+## gateway/../resources/application.yml
+
+spring:
+  profiles: docker
+  cloud:
+    gateway:
+      routes:
+        - id: booking
+          uri: http://booking:8080
+          predicates:
+            - Path=/bookings/**
+        - id: confirm
+          uri: http://confirm:8080
+          predicates:
+            - Path=/confirms/** 
+        - id: notification
+          uri: http://notification:8080
+          predicates:
+            - Path=/notifications/** 
+        - id: bookinglist
+          uri: http://bookingList:8080
+          predicates:
+            - Path=/bookingLists/**
+```
+
+```yml
+## gateway/../kubernetes/service.yml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway
+  labels:
+    app: gateway
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: gateway
+  type:
+    LoadBalancer
+```
+
 ## pipeline 동작 결과
 
 아래 이미지는 aws pipeline에 각각의 서비스들을 올려, 코드가 업데이트 될때마다 자동으로 빌드/배포 하도록 하였다.
