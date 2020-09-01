@@ -8,6 +8,7 @@ public class BookingCancelled extends AbstractEvent {
     private String useStartDtm;
     private String useEndDtm;
     private String bookingUserId;
+    private String status;
 
     public Long getId() {
         return id;
@@ -43,5 +44,12 @@ public class BookingCancelled extends AbstractEvent {
 
     public void setBookingUserId(String bookingUserId) {
         this.bookingUserId = bookingUserId;
+    }
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }
