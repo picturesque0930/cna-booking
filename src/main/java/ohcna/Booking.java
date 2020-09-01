@@ -18,27 +18,27 @@ public class Booking {
     @PostPersist
     public void onPostPersist(){
 
-        BookingCreated bookingCreated = new BookingCreated();
-        BeanUtils.copyProperties(this, bookingCreated);
-        bookingCreated.publishAfterCommit();
+        BookingCreated bookingCreated = new BookingCreated(); // 이벤트 인스턴스 생성
+        BeanUtils.copyProperties(this, bookingCreated); // 속성값 할당
+        bookingCreated.publishAfterCommit(); // Kafka 메시지 publish
 
     }
 
     @PostUpdate
     public void onPostUpdate(){
 
-        BookingChanged bookingChanged = new BookingChanged();
-        BeanUtils.copyProperties(this, bookingChanged);
-        bookingChanged.publishAfterCommit();
+        BookingChanged bookingChanged = new BookingChanged(); // 이벤트 인스턴스 생성
+        BeanUtils.copyProperties(this, bookingChanged); // 속성값 할당
+        bookingChanged.publishAfterCommit(); // Kafka 메시지 publish
 
     }
 
-    @PreRemove
-    public void onPreRemove(){
+    @PostRemove
+    public void onPostRemove(){
 
-        BookingCancelled bookingCancelled = new BookingCancelled();
-        BeanUtils.copyProperties(this, bookingCancelled);
-        bookingCancelled.publishAfterCommit();
+        BookingCancelled bookingCancelled = new BookingCancelled(); // 이벤트 인스턴스 생성
+        BeanUtils.copyProperties(this, bookingCancelled); // 속성값 할당
+        bookingCancelled.publishAfterCommit(); // Kafka 메시지 publish
 
     }
 
