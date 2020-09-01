@@ -40,5 +40,4 @@ Kubernetes에 Istio 설치
     kubectl apply -f install/kubernetes/istio-demo.yaml
 
 Istio 활성화
-    kubectl create namespace istio-cb-ns
-    kubectl label namespace istio-cb-ns istio-injection=enabled
+    
