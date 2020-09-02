@@ -1,10 +1,11 @@
 # 주제 - 회의실 시스템
 
-회의실 예약, 컨펌 관리 시스템 입니다.
+회의실 사용을 위해 예약/취소하고 관리자가 승인/거절하는 시스템입니다.
+예약의 상태 변경시에는 알림을 받을 수 있습니다.
+------
 
 # 구현 Repository
 
-총 4개
 1. https://github.com/aimmvp/cna-booking
 2. https://github.com/aimmvp/cna-confirm
 3. https://github.com/aimmvp/cna-notification
@@ -38,8 +39,6 @@
   - 예약/승인 상태가 변경될때 이메일로 알림을 줄 수 있다.(Event Driven)
   
 # 분석 설계
-* 이벤트스토밍 결과: http://www.msaez.io/#/storming/mOaNWpsERuRRDFTdm37r55hNZTm1/mine/595fb092dd58662b3447b8cc4f33f1e5/-MG1NAFxiCO7t8IK7chh
-
 ## 이벤트 도출
 
 ![이벤트 스토밍](https://user-images.githubusercontent.com/67448171/91698324-7e5b3e80-ebad-11ea-8b16-48120bf8e92a.jpg)
@@ -77,7 +76,7 @@
 - 호출관계에서 PubSub 과 Req/Resp 를 구분함
 - 서브 도메인과 바운디드 컨텍스트의 분리:  각 팀의 KPI 별로 아래와 같이 관심 구현 스토리를 나눠가짐
 
-# 구현:
+# 구현
 
 분석/설계 단계에서 도출된 헥사고날 아키텍처에 따라, 각 BC별로 대변되는 마이크로 서비스들을 스프링부트로 구현함. 구현한 각 서비스를 로컬에서 실행하는 방법은 아래와 같다 (각자의 포트넘버는 8081 ~ 808n 이다)
 booking/  confirm/  gateway/  notification/  bookinglist/
