@@ -1,15 +1,19 @@
 생성
-    http POST localhost:8081/bookings roomId=1 useStartDtm="20200831090000" useEndDtm="20200831100000" bookingUserId="06719" 
-    http POST localhost:8081/bookings roomId=1 useStartDtm="20200901093000" useEndDtm="20200901103000" bookingUserId="06719" 
-    http POST localhost:8081/bookings roomId=1 useStartDtm="20200902100000" useEndDtm="20200902110000" bookingUserId="06719" 
+    http POST localhost:8088/bookings roomId=1 useStartDtm="20200831090000" useEndDtm="20200831100000" bookingUserId="06719" 
+    http POST localhost:8088/bookings roomId=1 useStartDtm="20200901093000" useEndDtm="20200901103000" bookingUserId="06719" 
+    http POST localhost:8088/bookings roomId=1 useStartDtm="20200902100000" useEndDtm="20200902110000" bookingUserId="06719" 
+    http POST localhost:8088/confirms userId="06719" status="CONFIRMED" confirmDtm="2020901153000"
 변경
     http PUT localhost:8081/bookings/1 roomId=1 useStartDtm="20200831093000" useEndDtm="20200831130000" bookingUserId="06719" 
+    http PATCH localhost:8088/confirms/1 status="CONFIRMED" confirmDtm="2020901153000"
+    http PATCH localhost:8088/confirms/2 status="DENIED" confirmDtm="2020901153000"
 삭제
-    http DELETE localhost:8081/bookings/1
+    http DELETE localhost:8088/bookings/1
 조회: 목록
-    http GET localhost:8081/bookings 
+    http GET localhost:8088/bookings 
+    http GET localhost:8088/confirms
 조회: 1건
-    http GET localhost:8081/bookings/2
+    http GET localhost:8088/bookings/1
 
 Kafka Consumer
     Local
@@ -38,6 +42,4 @@ Kubernetes에 Istio 설치
     export PATH=$PWD/bin:$PATH
     for i in install/kubernetes/helm/istio-init/files/crd*yaml; do kubectl apply -f $i; done
     kubectl apply -f install/kubernetes/istio-demo.yaml
-
-Istio 활성화
-    
+    istioctl version
