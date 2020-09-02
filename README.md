@@ -356,6 +356,146 @@ spec:
     LoadBalancer
 ```
 
+## 전체 시나리오 테스트
+1. 회의실 예약(bookingCreate)
+```sh
+http POST http://ae0865d6fab6f4939b945502eec3b95f-35623661.ap-northeast-2.elb.amazonaws.com:8080/bookings roomId="556677" bookingUserId="45678" useStartDtm="202009021330" useEndDtm="202009021430"
+```
+```json
+{
+    "_links": {
+        "booking": {
+            "href": "http://booking:8080/bookings/3"
+        },
+        "self": {
+            "href": "http://booking:8080/bookings/3"
+        }
+    },
+    "bookingUserId": "45678",
+    "roomId": 556677,
+    "useEndDtm": "202009021430",
+    "useStartDtm": "202009021330"
+}
+```
+
+2. 승인내역 등록 확인(confirmRequest)
+```sh
+http GET  http://ae0865d6fab6f4939b945502eec3b95f-35623661.ap-northeast-2.elb.amazonaws.com:8080/confirms/2
+```
+```json
+{
+    "_links": {
+        "confirm": {
+            "href": "http://confirm:8080/confirms/2"
+        },
+        "self": {
+            "href": "http://confirm:8080/confirms/2"
+        }
+    },
+    "bookingId": 3,
+    "confirmDtm": null,
+    "status": "BOOKED",
+    "userId": "45678"
+}
+```
+
+3. 알림(notification)내역 확인
+```sh
+http GET  http://ae0865d6fab6f4939b945502eec3b95f-35623661.ap-northeast-2.elb.amazonaws.com:8080/notifications/5
+```
+```json
+{
+    "_links": {
+        "notification": {
+            "href": "http://notification:8080/notifications/5"
+        },
+        "self": {
+            "href": "http://notification:8080/notifications/5"
+        }
+    },
+    "contents": "conference room[556677] reservation is complete",
+    "sendDtm": "2020-09-02 02:03:56",
+    "userId": "45678"
+}
+```
+
+4. CQRS(bookingList) 확인
+```sh
+http GET  http://ae0865d6fab6f4939b945502eec3b95f-35623661.ap-northeast-2.elb.amazonaws.com:8080/bookingLists/7
+```
+```json
+{
+    "_links": {
+        "bookingList": {
+            "href": "http://bookingList:8080/bookingLists/7"
+        },
+        "self": {
+            "href": "http://bookingList:8080/bookingLists/7"
+        }
+    },
+    "bookingDtm": "2020-09-02 02:03:56",
+    "bookingId": 3,
+    "bookingUserId": "45678",
+    "confirmDtm": null,
+    "confirmId": null,
+    "confirmStatus": null,
+    "confirmUserId": null,
+    "roomId": 556677,
+    "useEndDtm": "202009021430",
+    "useStartDtm": "202009021330"
+}
+```
+
+5. 승인거절(confirmDenied)
+```sh
+http  PATCH http://ae0865d6fab6f4939b945502eec3b95f-35623661.ap-northeast-2.elb.amazonaws.com:8080/confirms/2 status="DENIED"
+```
+```json
+{
+    "_links": {
+        "confirm": {
+            "href": "http://confirm:8080/confirms/2"
+        },
+        "self": {
+            "href": "http://confirm:8080/confirms/2"
+        }
+    },
+    "bookingId": 3,
+    "confirmDtm": null,
+    "status": "DENIED",
+    "userId": "45678"
+}
+```
+
+6. 승인거절 Notification
+```sh
+http GET  http://ae0865d6fab6f4939b945502eec3b95f-35623661.ap-northeast-2.elb.amazonaws.com:8080/notifications/6
+```
+```json
+{
+    "_links": {
+        "notification": {
+            "href": "http://notification:8080/notifications/6"
+        },
+        "self": {
+            "href": "http://notification:8080/notifications/6"
+        }
+    },
+    "contents": "reservation has been canceled",
+    "sendDtm": "2020-09-02 02:10:23",
+    "userId": "45678"
+}
+```
+
+7. 승인거절시 bookingCancelled 호출 --> booking 내역 삭제
+```sh
+http GET  http://ae0865d6fab6f4939b945502eec3b95f-35623661.ap-northeast-2.elb.amazonaws.com:8080/bookings/3
+```
+```json
+HTTP/1.1 404 Not Found
+Date: Wed, 02 Sep 2020 02:12:16 GMT
+content-length: 0
+```
 
 # 운영
 
