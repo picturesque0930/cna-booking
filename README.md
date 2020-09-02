@@ -223,35 +223,57 @@ transfer-encoding: chunked
 ```java
 // cna-confirm/../externnal/BookingService.java
 
-@FeignClient(name="booking", url="http://booking:8080")
+// feign client 로 booking method 호출
+// URL 은 application.yml 정의함(api.url.booking)
+//@FeignClient(name="booking", url="http://booking:8080")
+@FeignClient(name="booking", url="${api.url.booking}")
 public interface BookingService {
 
-    @RequestMapping(method= RequestMethod.POST, path="/bookings")
-    public void bookingCancel(@RequestBody Booking booking);
+    // Booking Cancel 을 위한 삭제 mapping
+    @DeleteMapping(value = "/bookings/{id}")
+    public void bookingCancel(@PathVariable long id);
 }
+
+
+
+
+
 
 // cna-confirm/../Confirm.java
     @PostUpdate
     public void onPostUpdate(){
 
         // 이벤트 인스턴스 생성
-        ConfirmCompleted confirmCompleted = new ConfirmCompleted();
+        // BookingChanged bookingChanged = new BookingChanged();
 
-        // 속성값 할당
-        BeanUtils.copyProperties(this, confirmCompleted);
-        confirmCompleted.publishAfterCommit();
+        // Confirmed
+        if(this.getStatus().equals("CONFIRMED"))
+        {
+            ConfirmCompleted confirmCompleted = new ConfirmCompleted();
+            BeanUtils.copyProperties(this, confirmCompleted);
+             // 속성값 할당
+            confirmCompleted.publishAfterCommit();
+        }
+        
+        // Denied
+        else if(this.getStatus().equals("DENIED"))
+        {
+            // 이벤트 인스턴스 생성
+            ConfirmDenied confirmDenied = new ConfirmDenied();
 
-        // 이벤트 인스턴스 생성
-        ConfirmDenied confirmDenied = new ConfirmDenied();
+            // 속성값 할당
+            BeanUtils.copyProperties(this, confirmDenied);
+            confirmDenied.publishAfterCommit();
 
-        // 속성값 할당
-        BeanUtils.copyProperties(this, confirmDenied);
-        confirmDenied.publishAfterCommit();
+            // mappings goes here
+            ConfirmApplication.applicationContext.getBean(ohcna.external.BookingService.class)
+                .bookingCancel(this.getBookingId());
+        }
 
-        ohcna.external.Booking booking = new ohcna.external.Booking();
-        // mappings goes here
-        ConfirmApplication.applicationContext.getBean(ohcna.external.BookingService.class)
-            .bookingCancel(booking);
+        // Exception Error
+        else{
+            System.out.println("Error");
+        }
     }
 ```
 ### 비동기식 호출(Kafka Message 사용)
@@ -481,4 +503,26 @@ spec:
       baseEjectionTime: 30s
       maxEjectionPercent: 100
 EOF
+```
+
+## Self Healing 을 위한 Readiness, Liveness 적용
+
+```yaml
+## cna-booking/../deplyment.yml
+readinessProbe:
+    httpGet:
+        path: '/actuator/health'
+        port: 8080
+    initialDelaySeconds: 10
+    timeoutSeconds: 2
+    periodSeconds: 5
+    failureThreshold: 10
+livenessProbe:
+    httpGet:
+        path: '/actuator/health'
+        port: 8080
+    initialDelaySeconds: 120
+    timeoutSeconds: 2
+    periodSeconds: 5
+    failureThreshold: 5
 ```
