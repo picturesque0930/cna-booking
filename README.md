@@ -219,6 +219,7 @@ transfer-encoding: chunked
 
 분석단계에서의 조건 중 하나로 컨펌 반려(confirmDeny)->회의실 예약 취소(bookingCancel) 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리하기로 하였다. 호출 프로토콜은 이미 앞서 Rest Repository 에 의해 노출되어있는 REST 서비스를 FeignClient 를 이용하여 호출하도록 한다. 
 
+### 동기식 호출(FeignClient 사용)
 ```java
 // cna-confirm/../externnal/BookingService.java
 
@@ -253,25 +254,38 @@ public interface BookingService {
             .bookingCancel(booking);
     }
 ```
+### 비동기식 호출(Kafka Message 사용)
+* Publish
+```java
+// cna-booking/../Booking.java
+@PostPersist
+public void onPostPersist(){
+    BookingCreated bookingCreated = new BookingCreated();
+    BeanUtils.copyProperties(this, bookingCreated);
 
+    // AbstractEvent.java 의 publishAfterCommit --> publish --> KafkaChannel(outputChannel).send
+    bookingCreated.publishAfterCommit();
+}
 ```
-Res, PUB/SUB 등 개발 된거 설명하려면 
+* Subscribe
+```java
+// cna-notification/../PolicyHandler.java
+
+    @StreamListener(KafkaProcessor.INPUT)
+    public void wheneverBookingCreated_SendNotification(@Payload BookingCreated bookingCreated){
+
+        if(bookingCreated.isMe()){
+            // 노티 내용 SET
+            Notification notification = new Notification();
+            notification.setUserId(bookingCreated.getBookingUserId());
+            notification.setContents("conference room[" + bookingCreated.getRoomId() + "] reservation is complete");
+            String nowDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+            notification.setSendDtm(nowDate);
+            notificationRepository.save(notification);
+            System.out.println("##### listener SendNotification : " + bookingCreated.toJson());
+        }
+    }
 ```
-
-결과 : 회의실이 예약된 후, 예약이 완료되는 것과 회의실의 상태가 변경된 것을 bookingList에서 확인 할 수 있다.
-
-# 운영
-
-## CI/CD 설정
-
-각 구현체들은 각자의 source repository 에 구성되었고, 사용한 CI/CD 플랫폼은 AWS CodeBuild를 사용하였으며, pipeline build script 는 각 프로젝트 폴더 이하에 buildspec.yml 에 포함되었다.
-![CI/CD Pipeline](https://user-images.githubusercontent.com/3872380/91843678-1bdb6e80-ec91-11ea-87ac-dc2e90b24798.png)
-1. 변경된 소스 코드를 GitHub에 push
-2. CodeBuild에서 webhook으로 GitHub의 push 이벤트를 감지하고 build, test 수행
-3. Docker image를 생성하여 ECR에 push
-4. Kubernetes(EKS)에 도커 이미지 배포 요청
-5. ECR에서 도커 이미지 pull
-
 
 ## Gateway 적용
 각 서비스는 ClusterIP 로 선언하여 외부로 노출되지 않고, Gateway 서비스 만을 LoadBalancer 타입으로 선언하여 Gateway 서비스를 통해서만 접근할 수 있다.
@@ -320,67 +334,151 @@ spec:
     LoadBalancer
 ```
 
-## pipeline 동작 결과
+
+# 운영
+
+## CI/CD 설정
+
+각 구현체들은 각자의 source repository 에 구성되었고, 사용한 CI/CD 플랫폼은 AWS CodeBuild를 사용하였으며, pipeline build script 는 각 프로젝트 폴더 이하에 buildspec.yml 에 포함되었다.
+![CI/CD Pipeline](https://user-images.githubusercontent.com/3872380/91843678-1bdb6e80-ec91-11ea-87ac-dc2e90b24798.png)
+1. 변경된 소스 코드를 GitHub에 push
+2. CodeBuild에서 webhook으로 GitHub의 push 이벤트를 감지하고 build, test 수행
+3. Docker image를 생성하여 ECR에 push
+4. Kubernetes(EKS)에 도커 이미지 배포 요청
+5. ECR에서 도커 이미지 pull
+
+[ 구현 사항]
+ * CodeBuild에 EKS 권한 추가
+ ```json
+         {
+            "Action": [
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:CompleteLayerUpload",
+                "ecr:GetAuthorizationToken",
+                "ecr:InitiateLayerUpload",
+                "ecr:PutImage",
+                "ecr:UploadLayerPart",
+                "eks:DescribeCluster"
+            ],
+            "Resource": "*",
+            "Effect": "Allow"
+        }
+ ```
+  * EKS 역할에 CodeBuild 서비스 추가하는 내용을 EKS 의 ConfigMap 적용
+```yaml
+## aws-auth.yml
+apiVersion: v1
+data:
+  mapRoles: |
+    - groups:
+      - system:bootstrappers
+      - system:nodes
+      rolearn: arn:aws:iam::052937454741:role/eksctl-TeamE-nodegroup-standard-w-NodeInstanceRole-GXDWDGLPWR40
+      username: system:node:{{EC2PrivateDNSName}}
+    - rolearn: arn:aws:iam::052937454741:role/CodeBuildServiceRoleForTeamE
+      username: CodeBuildServiceRoleForTeamE
+      groups:
+        - system:masters
+  mapUsers: |
+    []
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2020-08-31T09:06:31Z"
+  name: aws-auth
+  namespace: kube-system
+  resourceVersion: "854"
+  selfLink: /api/v1/namespaces/kube-system/configmaps/aws-auth
+  uid: cf038f09-ab94-4b60-9937-33acc0be86d8
+
+```
+```shell
+kubectl apply -f aws-auth.yml --force
+```
+  * buildspec.yml
+  ```yaml
+  version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto8 # Amazon Corretto 8 - production-ready distribution of the OpenJDK
+      docker: 18
+    commands:
+      - curl -o kubectl https://amazon-eks.s3.us-west-2.amazonaws.com/1.15.11/2020-07-08/bin/darwin/amd64/kubectl # Download kubectl 
+      - chmod +x ./kubectl
+      - mkdir ~/.kube
+      - aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name TeamE # Set cluster TeamE as default cluster
+  pre_build:
+    commands:
+      - echo Region = $AWS_DEFAULT_REGION # Check Environment Variables
+      - echo Account ID = $AWS_ACCOUNT_ID # Check Environment Variables
+      - echo ECR Repo = $IMAGE_REPO_NAME # Check Environment Variables
+      - echo Docker Image Tag = $IMAGE_TAG # Check Environment Variables
+      - echo Logging in to Amazon ECR...
+      - $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION) # Login ECR
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - mvn clean
+      - mvn package -Dmaven.test.skip=true # Build maven
+      - docker build -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG . # Build docker image
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker image...
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG # Push docker image to ECR
+      - echo Deploy service into EKS
+      - kubectl apply -f ./kubernetes/deployment.yml # Deploy
+      - kubectl apply -f ./kubernetes/service.yml # Service
+
+cache:
+  paths:
+    - '/root/.m2/**/*'
+  ```
+## CodeBuild 를 통한 CI/CD 동작 결과
 
 아래 이미지는 aws pipeline에 각각의 서비스들을 올려, 코드가 업데이트 될때마다 자동으로 빌드/배포 하도록 하였다.
+![CodeBuild 결과](https://user-images.githubusercontent.com/1927756/91916332-da31de80-ecf7-11ea-85eb-a2fe6e4ce82b.png)
+![K8S 결과](https://user-images.githubusercontent.com/1927756/91916387-fafa3400-ecf7-11ea-8263-7351976b50cc.png)
+
+## Service Mesh
+###  istio 를 통해 booking, confirm service 에 적용
+ ```sh
+ kubectl get deploy booking -o yaml > booking_deploy.yaml
+ kubectl apply -f <(istioctl kube-inject -f booking_deploy.yaml)
+
+ kubectl get deploy confirm -o yaml > confirm_deploy.yaml
+ kubectl apply -f <(istioctl kube-inject -f confirm_deploy.yaml)
+ ```
+ ![istio적용 결과](https://user-images.githubusercontent.com/1927756/91917876-2ed75880-ecfc-11ea-85f3-3e3dc6759df8.png)
+
+### Scaleout(confirm) 적용
+```sh
+kubectl scale deploy confirm --replicas=2
 ```
-Test 결과 넣어야 함
+![scaleout 적용](https://user-images.githubusercontent.com/1927756/91918221-4d8a1f00-ecfd-11ea-9cad-92a35a08edd2.png)
+
+### confirm 에 Circuit Break 적용
+```sh
+kubectl apply -f - <<EOF
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: confirm
+spec:
+  host: confirm
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 2
+      http:
+        http1MaxPendingRequests: 1
+        maxRequestsPerConnection: 1
+    outlierDetection:
+      consecutiveErrors: 5
+      interval: 1s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 100
+EOF
 ```
-
-그 결과 kubernetes cluster에 아래와 같이 서비스가 올라가있는 것을 확인할 수 있다.
-
-```
-Test 결과 넣어야 함
-```
-
-또한, 기능들도 정상적으로 작동함을 알 수 있다.
-
-**<이벤트 날리기>**
-
-```
-Test 결과 넣어야 함
-```
-
-**<동작 결과>**
-
-```
-Test 결과 넣어야 함
-```
-
-### 오토스케일 아웃
-
-
-- 컨펌서비스에 대한 replica 를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 15프로를 넘어서면 replica 를 10개까지 늘려준다:
-- 오토스케일이 어떻게 되고 있는지 모니터링을 걸어둔다:
-
-```
-Test 결과 넣어야 함
-```
-
-- 워크로드를 2분 동안 걸어준 후 테스트 결과는 아래와 같다.
-
-```
-Test 결과 넣어야 함
-```
-
-
-## 무정지 재배포
-
-Autoscaler설정과 Readiness 제거를 한뒤, 부하를 넣었다. 
-
-이후 Readiness를 제거한 코드를 업데이트하여 새 버전으로 배포를 시작했다.
-
-그 결과는 아래는 같다.
-
-```
-Test 결과 넣어야 함
-```
-
-다시 Readiness 설정을 넣고 부하를 넣었다.
-
-그리고 새버전으로 배포한 뒤 그 결과는 아래와 같다.
-
-```
-Test 결과 넣어야 함
-```
-배포기간 동안 Availability 가 변화없기 때문에 무정지 재배포가 성공한 것으로 확인됨.
