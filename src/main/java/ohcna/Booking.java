@@ -14,6 +14,7 @@ public class Booking {
     private String useStartDtm;
     private String useEndDtm;
     private String bookingUserId;
+    private String status;
 
     @PostPersist
     public void onPostPersist(){
@@ -27,6 +28,8 @@ public class Booking {
     @PostUpdate
     public void onPostUpdate(){
 
+        // 속성 셋팅
+        //saga pattern 추후 검토
         BookingChanged bookingChanged = new BookingChanged(); // 이벤트 인스턴스 생성
         BeanUtils.copyProperties(this, bookingChanged); // 속성값 할당
         bookingChanged.publishAfterCommit(); // Kafka 메시지 publish
@@ -77,6 +80,13 @@ public class Booking {
 
     public void setBookingUserId(String bookingUserId) {
         this.bookingUserId = bookingUserId;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+    public void setStatus(String status) {
+        this.status = status;
     }
 
 }
